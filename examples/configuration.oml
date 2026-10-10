@@ -1,0 +1,11 @@
+app {
+    name = "MyProgram"
+    version = "1.0"
+}
+
+user {
+    name = "Pi3"
+    language = "ru"
+}
+
+globalarray = [one, two, three, four]

@@ -5,15 +5,23 @@
 
 typedef struct {
     char *key;
-    char **value;
+    char *value;
+    char **array;
 } entry;
 
 typedef struct {
+    char *name;
     entry *entries;
+    size_t count;
+} section;
+
+typedef struct {
+    section *sections;
+    size_t count;
 } table;
 
 table *oml_get(const char *filename);
-entry *oml_bykey(table *data, const char *key);
-size_t oml_params(entry *e);
+const entry *oml_bykey(const table *t, const char *section_name, const char *key);
+void oml_free(table *t);
 
 #endif

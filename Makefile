@@ -13,6 +13,7 @@ install: liboml.so
 	ldconfig
 
 clean:
-	rm -f liboml.so
 
 .PHONY: install clean
+
+	rm -f liboml.so
