@@ -1,11 +1,80 @@
-app {
-    name = "MyProgram"
-    version = "1.0"
+name = Mission_Control
+version = 1.0.0
+environment = simulation
+log_level = info
+
+rockets = [ Falcon_1, Falcon_9, Falcon_Heavy, Starship, Super_Heavy ]
+
+falcon_1 {
+    name = Falcon_1
+    manufacturer = SpaceX
+    stages = 2
+    reusable = false
+    status = retired
+    engines = [ Merlin_1A ]
 }
 
-user {
-    name = "Pi3"
-    language = "ru"
+falcon_9 {
+    name = Falcon_9
+    manufacturer = SpaceX
+    stages = 2
+    reusable = true
+    status = operational
+    engines = [ Merlin_1D, Merlin_Vacuum ]
+    missions = [ Starlink, CRS, Crew_Dragon ]
 }
 
-globalarray = [one, two, three, four]
+falcon_heavy {
+    name = Falcon_Heavy
+    manufacturer = SpaceX
+    stages = 2
+    reusable = true
+    side_boosters = 2
+    status = operational
+    components = [ Core_Booster, Left_Booster, Right_Booster ]
+}
+
+dragon {
+    name = Dragon
+    crewed = true
+    reusable = true
+    status = operational
+    variants = [ Crew_Dragon, Cargo_Dragon ]
+}
+
+starship {
+    name = Starship
+    stages = 2
+    reusable = true
+    status = in_development
+    objectives = [ Lunar_Missions, Mars_Exploration, Orbital_Refueling ]
+}
+
+super_heavy {
+    name = Super_Heavy
+    type = first_stage_booster
+    reusable = true
+    status = in_development
+    systems = [ Propulsion, Guidance, Telemetry, Recovery ]
+}
+
+starlink {
+    name = Starlink
+    type = satellite_constellation
+    status = operational
+    services = [ Broadband, Maritime, Aviation, Direct_To_Cell ]
+}
+
+mission_control {
+    telemetry = true
+    tracking = true
+    simulation_mode = true
+    monitored_systems = [ Propulsion, Navigation, Communications, Power, Thermal ]
+}
+
+storage {
+    data_directory = /var/lib/spacex
+    backup_enabled = true
+    retention_days = 90
+    backup_targets = [ Local, Remote, Archive ]
+}

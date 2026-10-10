@@ -12,16 +12,22 @@ typedef struct {
 typedef struct {
     char *name;
     entry *entries;
-    size_t count;
+    size_t size;
+    size_t capacity;
 } section;
 
 typedef struct {
     section *sections;
-    size_t count;
+    size_t size;
+    size_t capacity;
 } table;
 
 table *oml_get(const char *filename);
-const entry *oml_bykey(const table *t, const char *section_name, const char *key);
+
+const section *oml_bysec(const table *t, const char *name);
+
+const entry *oml_bykey(const section *s, const char *key);
+
 void oml_free(table *t);
 
 #endif
