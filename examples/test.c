@@ -10,9 +10,13 @@ int main(void)
 
     const section *global = oml_bysec(config, "__undefined");
     const entry *title = oml_bykey(global, "name");
+    const entry *description = oml_bykey(global, "description");
 
     if (title)
         printf("%s\n", title->value);
+
+    if (description)
+        printf("%s\n", description->value);
 
     /* Falcon 9 */
 
