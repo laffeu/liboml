@@ -14,6 +14,7 @@ install: liboml.so
 	install -d $(PREFIX)/include
 	install -d $(PREFIX)/lib
 	install -m 644 src/liboml.h $(PREFIX)/include/
+	install -m 644 src/loml.hpp $(PREFIX)/include/
 	install -m 755 liboml.so $(PREFIX)/lib/
 	ldconfig
 
