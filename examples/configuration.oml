@@ -7,6 +7,8 @@ version = 1.0.0
 environment = simulation
 log_level = info
 
+bool = true
+
 rockets = [ Falcon_1, Falcon_9, Falcon_Heavy, Starship, Super_Heavy ]
 
 falcon_1 {
