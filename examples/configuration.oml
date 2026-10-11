@@ -1,4 +1,8 @@
 name = Mission_Control
+description = `
+Mission Control is a launch and telemetry management system.
+It monitors rockets, tracks missions, and manages telemetry data.
+`
 version = 1.0.0
 environment = simulation
 log_level = info

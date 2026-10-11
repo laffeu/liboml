@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     char *key;
     char *value;
@@ -29,5 +33,9 @@ const section *oml_bysec(const table *t, const char *name);
 const entry *oml_bykey(const section *s, const char *key);
 
 void oml_free(table *t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
