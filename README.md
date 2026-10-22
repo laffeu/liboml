@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/banner.png" width="460">
+</div>
+
 ![banner](assets/banner.png)
 ## Installation
 ```bash
