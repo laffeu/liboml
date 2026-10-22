@@ -1,4 +1,4 @@
-![banner](assets/banner.png)
+<img src="assets/banner.png" alt="liboml banner" width="460">
 
 ## Installation
 ```bash
