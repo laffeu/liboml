@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/bannerupscaled.png" width="460">
+  <img src="assets/banner.png" width="460">
 </div>
 
 ## Installation
