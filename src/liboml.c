@@ -341,13 +341,17 @@ table *oml_get(const char *filename)
                 if (!*l)
                     goto fail;
 
-                for (cur = 0;
-                     cur < t->size &&
-                     strcmp(t->sections[cur].name, l);
-                     cur++)
-                    ;
+                size_t parent = cur;
+                size_t j;
 
-                if (cur == t->size) {
+                for (j = 0; j < t->size; j++) {
+                    if (j != parent &&
+                        t->sections[j].parent == parent &&
+                        !strcmp(t->sections[j].name, l))
+                        break;
+                }
+
+                if (j == t->size) {
                     section *p = grow(
                         t->sections, &t->capacity,
                         sizeof *t->sections, t->size + 1);
@@ -356,17 +360,21 @@ table *oml_get(const char *filename)
                         goto fail;
 
                     t->sections = p;
-                    t->sections[cur] = (section){0};
+                    t->sections[j] = (section){0};
+                    t->sections[j].parent = parent;
 
-                    if (!(t->sections[cur].name = xstrdup(l)))
+                    if (!(t->sections[j].name = xstrdup(l)))
                         goto fail;
 
                     t->size++;
                 }
 
+                cur = j;
                 skip_entry = 1;
             } else if (!strcmp(l, "}")) {
-                cur = 0;
+                if (cur == 0)
+                    goto fail;
+                cur = t->sections[cur].parent;
                 skip_entry = 1;
             } else {
                 if (!(e = strchr(l, '=')) || e == l)
@@ -491,16 +499,17 @@ fail:
     return NULL;
 }
 
-const section *oml_bysec(const table *t, const char *name)
+const section *oml_section(const table *t, const char *name)
 {
-    if (!t)
+    if (!t || !t->sections || !t->size)
         return NULL;
 
     if (!name || !strcmp(name, "__undefined"))
-        name = "__undefined";
+        return &t->sections[0];
 
-    for (size_t i = 0; i < t->size; i++) {
-        if (t->sections[i].name &&
+    for (size_t i = 1; i < t->size; i++) {
+        if (t->sections[i].parent == 0 &&
+            t->sections[i].name &&
             !strcmp(t->sections[i].name, name))
             return &t->sections[i];
     }
@@ -508,15 +517,42 @@ const section *oml_bysec(const table *t, const char *name)
     return NULL;
 }
 
-const entry *oml_bykey(const section *sec, const char *key)
+const section *oml_nested(const table *t, const section *parent,
+                          const char *name)
 {
-    if (!sec || !key)
+    if (!t || !t->sections || !t->size || !parent || !name)
         return NULL;
 
-    for (size_t i = 0; i < sec->size; i++) {
-        if (sec->entries[i].key &&
-            !strcmp(sec->entries[i].key, key))
-            return &sec->entries[i];
+    size_t pidx;
+
+    for (pidx = 0; pidx < t->size; pidx++) {
+        if (&t->sections[pidx] == parent)
+            break;
+    }
+
+    if (pidx == t->size)
+        return NULL;
+
+    for (size_t i = 0; i < t->size; i++) {
+        if (i != pidx &&
+            t->sections[i].parent == pidx &&
+            t->sections[i].name &&
+            !strcmp(t->sections[i].name, name))
+            return &t->sections[i];
+    }
+
+    return NULL;
+}
+
+const entry *oml_key(const section *s, const char *key)
+{
+    if (!s || !key || !s->entries)
+        return NULL;
+
+    for (size_t i = 0; i < s->size; i++) {
+        if (s->entries[i].key &&
+            !strcmp(s->entries[i].key, key))
+            return &s->entries[i];
     }
 
     return NULL;

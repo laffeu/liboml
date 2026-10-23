@@ -74,6 +74,12 @@ mission_control {
     tracking = true
     simulation_mode = true
     monitored_systems = [ Propulsion, Navigation, Communications, Power, Thermal ]
+
+    telemetry_config {
+        sampling_rate = 100
+        format = binary
+        channels = [ Temperature, Pressure, Vibration ]
+    }
 }
 
 storage {
@@ -81,4 +87,10 @@ storage {
     backup_enabled = true
     retention_days = 90
     backup_targets = [ Local, Remote, Archive ]
+
+    database {
+        engine = sqlite
+        file = telemetry.db
+        journal_mode = WAL
+    }
 }
