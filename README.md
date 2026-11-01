@@ -27,7 +27,7 @@ make && make install
 
 int main(void)
 {
-    table *cfg = oml_get("examples/configuration.oml");
+    table *cfg = oml_get("sample.oml");
     if (!cfg)
         return 1;
 
@@ -71,7 +71,7 @@ int main(void)
 
 int main()
 {
-    loml::Table cfg("examples/configuration.oml");
+    loml::Table cfg("sample.oml");
 
     if (auto title = cfg.get("__undefined", "name"))
         std::cout << *title << std::endl;
