@@ -6,3 +6,69 @@ git clone https://github.com/laffeu/liboml.git
 cd liboml
 make && make install
 ```
+
+## Quick Start
+
+### C
+
+```c
+#include "liboml.h"
+#include <stdio.h>
+
+int main(void)
+{
+    table *cfg = oml_get("examples/configuration.oml");
+    if (!cfg)
+        return 1;
+
+    const section *global = oml_section(cfg, "__undefined");
+    const entry *title = oml_value(global, "name");
+
+    if (title && title->value)
+        printf("%s\n", title->value);
+
+    const section *falcon = oml_section(cfg, "falcon_9");
+    const entry *name = oml_value(falcon, "name");
+    const entry *engines = oml_value(falcon, "engines");
+
+    if (name && name->value)
+        printf("Rocket: %s\n", name->value);
+
+    if (engines && engines->array) {
+        for (size_t i = 0; engines->array[i]; i++)
+            printf("Engine: %s\n", engines->array[i]);
+    }
+
+    oml_free(cfg);
+    return 0;
+}
+```
+
+### C++
+
+```c++
+#include "loml.hpp"
+#include <iostream>
+#include <string>
+#include <vector>
+
+int main()
+{
+    loml::Table cfg("examples/configuration.oml");
+
+    if (auto title = cfg.get<>("__undefined", "name"))
+        std::cout << *title << std::endl;
+
+    if (auto name = cfg.get<>("falcon_9", "name"))
+        std::cout << "Rocket: " << *name << std::endl;
+
+    if (auto engines = cfg.get<std::vector<std::string>>(
+            "falcon_9", "engines")) {
+        for (const auto &engine : *engines)
+            std::cout << "Engine: " << engine << std::endl;
+    }
+
+    return 0;
+}
+
+```
