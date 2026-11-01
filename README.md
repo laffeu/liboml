@@ -72,3 +72,15 @@ int main()
 }
 
 ```
+
+## API Reference
+
+## API Reference
+
+| Function | Description |
+|---|---|
+| `oml_get(filename)` | Load and parse an OML configuration file |
+| `oml_section(table, name)` | Retrieve a top-level or global section |
+| `oml_nested(table, parent, name)` | Retrieve a nested section from its parent |
+| `oml_value(section, key)` | Retrieve an entry by its key |
+| `oml_free(table)` | Free all allocated configuration resources |
