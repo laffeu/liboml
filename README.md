@@ -49,6 +49,13 @@ int main(void)
             printf("Engine: %s\n", engines->array[i]);
     }
 
+    const section *mission = oml_section(cfg, "mission_control");
+    const section *telemetry = oml_nested(cfg, mission, "telemetry_config");
+    const entry *rate = oml_value(telemetry, "sampling_rate");
+
+    if (rate && rate->value)
+        printf("Sampling rate: %s\n", rate->value);
+
     oml_free(cfg);
     return 0;
 }
