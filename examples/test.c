@@ -12,8 +12,8 @@ int main(void)
     /* Global configuration */
 
     const section *global = oml_section(config, "__undefined");
-    const entry *title = oml_key(global, "name");
-    const entry *description = oml_key(global, "description");
+    const entry *title = oml_value(global, "name");
+    const entry *description = oml_value(global, "description");
 
     if (title)
         printf("%s\n", title->value);
@@ -24,8 +24,8 @@ int main(void)
     /* Falcon 9 */
 
     const section *falcon = oml_section(config, "falcon_9");
-    const entry *falcon_name = oml_key(falcon, "name");
-    const entry *engines = oml_key(falcon, "engines");
+    const entry *falcon_name = oml_value(falcon, "name");
+    const entry *engines = oml_value(falcon, "engines");
 
     if (falcon_name)
         printf("Rocket: %s\n", falcon_name->value);
@@ -40,8 +40,8 @@ int main(void)
     /* Starship */
 
     const section *starship = oml_section(config, "starship");
-    const entry *starship_name = oml_key(starship, "name");
-    const entry *objectives = oml_key(starship, "objectives");
+    const entry *starship_name = oml_value(starship, "name");
+    const entry *objectives = oml_value(starship, "objectives");
 
     if (starship_name)
         printf("Rocket: %s\n", starship_name->value);
@@ -59,7 +59,7 @@ int main(void)
         oml_section(config, "mission_control");
 
     const entry *telemetry_enabled =
-        oml_key(mission_control, "telemetry");
+        oml_value(mission_control, "telemetry");
 
     if (telemetry_enabled)
         printf("Telemetry enabled: %s\n", telemetry_enabled->value);
@@ -68,10 +68,10 @@ int main(void)
         oml_nested(config, mission_control, "telemetry_config");
 
     const entry *sampling_rate =
-        oml_key(telemetry_config, "sampling_rate");
+        oml_value(telemetry_config, "sampling_rate");
 
     const entry *format =
-        oml_key(telemetry_config, "format");
+        oml_value(telemetry_config, "format");
 
     if (sampling_rate)
         printf("Telemetry sampling rate: %s\n", sampling_rate->value);
@@ -84,9 +84,9 @@ int main(void)
     const section *storage = oml_section(config, "storage");
     const section *database = oml_nested(config, storage, "database");
 
-    const entry *db_engine = oml_key(database, "engine");
-    const entry *db_file = oml_key(database, "file");
-    const entry *journal_mode = oml_key(database, "journal_mode");
+    const entry *db_engine = oml_value(database, "engine");
+    const entry *db_file = oml_value(database, "file");
+    const entry *journal_mode = oml_value(database, "journal_mode");
 
     if (db_engine)
         printf("Database engine: %s\n", db_engine->value);

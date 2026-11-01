@@ -29,7 +29,7 @@ const section *oml_section(const table *t, const char *name);
 
 const section *oml_nested(const table *t, const section *parent,
                           const char *name);
-const entry *oml_key(const section *s, const char *key);
+const entry *oml_value(const section *s, const char *key);
 
 void oml_free(table *t);
 

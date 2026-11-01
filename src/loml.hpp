@@ -9,6 +9,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <initializer_list>
 
 namespace loml
 {
@@ -89,6 +90,25 @@ namespace loml
     private:
         table *table_;
 
+        const ::section *resolve(
+            std::initializer_list<const char *> path) const
+        {
+            if (!table_)
+                return nullptr;
+
+            if (path.size() == 0)
+                return oml_section(table_, nullptr);
+
+            auto it = path.begin();
+            const ::section *sec = oml_section(table_, *it);
+            ++it;
+
+            for (; it != path.end() && sec; ++it)
+                sec = oml_nested(table_, sec, *it);
+
+            return sec;
+        }
+
     public:
         explicit Table(const char *filename)
             : table_(oml_get(filename))
@@ -120,9 +140,20 @@ namespace loml
             return *this;
         }
 
-        bool valid() const
+        const ::section *section(const char *section_name = nullptr) const
         {
-            return table_ != nullptr;
+            if (!table_)
+                return nullptr;
+
+            return oml_section(table_, section_name);
+        }
+
+        const ::section *nested(const ::section *parent, const char *name) const
+        {
+            if (!table_ || !parent || !name)
+                return nullptr;
+
+            return oml_nested(table_, parent, name);
         }
 
         template<typename T = std::string>
@@ -134,10 +165,22 @@ namespace loml
             if (!table_)
                 return nullptr;
 
+            const ::section *sec = oml_section(table_, section_name);
+            return get<T>(sec, key);
+        }
+
+        template<typename T = std::string>
+        std::unique_ptr<T> get(
+            const ::section *sec,
+            const char *key
+        ) const
+        {
+            if (!table_ || !sec || !key)
+                return nullptr;
+
             if constexpr (std::is_same_v<T, std::string>)
             {
-                const section *sec = oml_bysec(table_, section_name);
-                const entry *e = oml_bykey(sec, key);
+                const entry *e = oml_value(sec, key);
 
                 if (!e || !e->value)
                     return nullptr;
@@ -146,8 +189,7 @@ namespace loml
             }
             else if constexpr (std::is_same_v<T, std::vector<std::string>>)
             {
-                const section *sec = oml_bysec(table_, section_name);
-                const entry *e = oml_bykey(sec, key);
+                const entry *e = oml_value(sec, key);
 
                 if (!e || !e->array)
                     return nullptr;
@@ -161,13 +203,23 @@ namespace loml
             }
             else
             {
-                auto value = get<std::string>(section_name, key);
+                auto value = get<std::string>(sec, key);
 
                 if (!value)
                     return nullptr;
 
                 return convert<T>(value->c_str());
             }
+        }
+
+        template<typename T = std::string>
+        std::unique_ptr<T> get(
+            std::initializer_list<const char *> path,
+            const char *key
+        ) const
+        {
+            const ::section *sec = resolve(path);
+            return get<T>(sec, key);
         }
     };
 }

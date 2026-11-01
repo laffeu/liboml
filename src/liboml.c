@@ -544,7 +544,7 @@ const section *oml_nested(const table *t, const section *parent,
     return NULL;
 }
 
-const entry *oml_key(const section *s, const char *key)
+const entry *oml_value(const section *s, const char *key)
 {
     if (!s || !key || !s->entries)
         return NULL;
