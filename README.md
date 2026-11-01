@@ -66,10 +66,10 @@ int main()
 {
     loml::Table cfg("examples/configuration.oml");
 
-    if (auto title = cfg.get<>("__undefined", "name"))
+    if (auto title = cfg.get("__undefined", "name"))
         std::cout << *title << std::endl;
 
-    if (auto name = cfg.get<>("falcon_9", "name"))
+    if (auto name = cfg.get("falcon_9", "name"))
         std::cout << "Rocket: " << *name << std::endl;
 
     if (auto engines = cfg.get<std::vector<std::string>>(
@@ -77,8 +77,12 @@ int main()
         for (const auto &engine : *engines)
             std::cout << "Engine: " << engine << std::endl;
     }
+    
+    if (auto rate = cfg.get(
+            {"mission_control", "telemetry_config"},
+            "sampling_rate"))
+        std::cout << "Sampling rate: " << *rate << std::endl;
 
     return 0;
 }
-
 ```
