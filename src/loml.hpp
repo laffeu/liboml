@@ -14,10 +14,10 @@
 namespace loml
 {
     template<typename T>
-    std::unique_ptr<T> convert(const char *value);
+    std::unique_ptr<T> convert(char *value);
 
     template<>
-    inline std::unique_ptr<std::string> convert<std::string>(const char *value)
+    inline std::unique_ptr<std::string> convert<std::string>(char *value)
     {
         if (!value)
             return nullptr;
@@ -26,7 +26,7 @@ namespace loml
     }
 
     template<>
-    inline std::unique_ptr<int> convert<int>(const char *value)
+    inline std::unique_ptr<int> convert<int>(char *value)
     {
         if (!value)
             return nullptr;
@@ -41,7 +41,7 @@ namespace loml
     }
 
     template<>
-    inline std::unique_ptr<float> convert<float>(const char *value)
+    inline std::unique_ptr<float> convert<float>(char *value)
     {
         if (!value)
             return nullptr;
@@ -56,7 +56,7 @@ namespace loml
     }
 
     template<>
-    inline std::unique_ptr<double> convert<double>(const char *value)
+    inline std::unique_ptr<double> convert<double>(char *value)
     {
         if (!value)
             return nullptr;
@@ -71,7 +71,7 @@ namespace loml
     }
 
     template<>
-    inline std::unique_ptr<bool> convert<bool>(const char *value)
+    inline std::unique_ptr<bool> convert<bool>(char *value)
     {
         if (!value)
             return nullptr;
@@ -90,21 +90,21 @@ namespace loml
     private:
         table *table_;
 
-        const ::section *resolve(
-            std::initializer_list<const char *> path) const
+        ::section *resolve(
+            std::initializer_list<char *> path) const
         {
             if (!table_)
                 return nullptr;
 
             if (path.size() == 0)
-                return oml_section(table_, nullptr);
+                return const_cast<::section *>(oml_section(table_, nullptr));
 
             auto it = path.begin();
-            const ::section *sec = oml_section(table_, *it);
+            ::section *sec = const_cast<::section *>(oml_section(table_, *it));
             ++it;
 
             for (; it != path.end() && sec; ++it)
-                sec = oml_nested(table_, sec, *it);
+                sec = const_cast<::section *>(oml_nested(table_, sec, *it));
 
             return sec;
         }
@@ -140,7 +140,7 @@ namespace loml
             return *this;
         }
 
-        const ::section *section(const char *section_name = nullptr) const
+        const ::section *section(char *section_name = nullptr) const
         {
             if (!table_)
                 return nullptr;
@@ -148,7 +148,7 @@ namespace loml
             return oml_section(table_, section_name);
         }
 
-        const ::section *nested(const ::section *parent, const char *name) const
+        const ::section *nested(::section *parent, char *name) const
         {
             if (!table_ || !parent || !name)
                 return nullptr;
@@ -158,21 +158,21 @@ namespace loml
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            const char *section_name,
-            const char *key
+            char *section_name,
+            char *key
         ) const
         {
             if (!table_)
                 return nullptr;
 
-            const ::section *sec = oml_section(table_, section_name);
+            ::section *sec = const_cast<::section *>(oml_section(table_, section_name));
             return get<T>(sec, key);
         }
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            const ::section *sec,
-            const char *key
+            ::section *sec,
+            char *key
         ) const
         {
             if (!table_ || !sec || !key)
@@ -208,17 +208,17 @@ namespace loml
                 if (!value)
                     return nullptr;
 
-                return convert<T>(value->c_str());
+                return convert<T>(const_cast<char *>(value->c_str()));
             }
         }
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            std::initializer_list<const char *> path,
-            const char *key
+            std::initializer_list<char *> path,
+            char *key
         ) const
         {
-            const ::section *sec = resolve(path);
+            ::section *sec = resolve(path);
             return get<T>(sec, key);
         }
     };

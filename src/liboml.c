@@ -5,6 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef OML_QUIET
+#define oml_error(line, message) \
+    fprintf(stderr, "%s: %s on line %zu\n", \
+            (filename), (message), (size_t)(line))
+#else
+#define oml_error(line, message) ((void)(message))
+#endif
+
 static char *trim(char *s)
 {
     while (isspace((unsigned char)*s))
@@ -63,9 +71,10 @@ static void *grow(void *arr, size_t *cap,
     return p;
 }
 
-static char *read_line(FILE *f, char **buf, size_t *cap)
+static char *read_line(FILE *f, char **buf, size_t *cap, int *status)
 {
     size_t len = 0;
+    *status = -1;
 
     if (!*buf) {
         *cap = 128;
@@ -91,11 +100,15 @@ static char *read_line(FILE *f, char **buf, size_t *cap)
         }
 
         if (!fgets(*buf + len, (int)(*cap - len), f)) {
-            if (ferror(f))
+            if (ferror(f)) {
+                *status = -2;
                 return NULL;
+            }
 
-            if (!len)
+            if (!len) {
+                *status = 0;
                 return NULL;
+            }
 
             break;
         }
@@ -111,6 +124,7 @@ static char *read_line(FILE *f, char **buf, size_t *cap)
             break;
     }
 
+    *status = 1;
     return *buf;
 }
 
@@ -202,6 +216,10 @@ table *oml_get(const char *filename)
     size_t linecap = 0;
     size_t rawcap = 0;
     size_t rawlen = 0;
+    size_t line_number = 0;
+    size_t raw_start = 0;
+    const char *error_message = "out of memory";
+    int read_status = 0;
 
     char *l, *s0, *k, *v, *e, *c;
     size_t cur = 0, len;
@@ -230,14 +248,16 @@ table *oml_get(const char *filename)
             l = freeline = pending;
             pending = NULL;
         } else {
-            l = read_line(f, &linebuf, &linecap);
+            l = read_line(f, &linebuf, &linecap, &read_status);
 
             if (!l) {
-                if (ferror(f))
-                    goto fail;
-
-                break;
+                if (read_status == 0)
+                    break;
+                error_message = read_status == -2
+                    ? "failed to read file" : "out of memory";
+                goto fail;
             }
+            line_number++;
         }
 
         int skip_entry = 0;
@@ -256,6 +276,7 @@ table *oml_get(const char *filename)
         raw = *s0 != '#' && e && e > s0 && v && *v == '`';
 
         if (raw) {
+            raw_start = line_number;
             *e = 0;
 
             if (!(k = xstrdup(trim(s0))))
@@ -292,10 +313,19 @@ table *oml_get(const char *filename)
                 }
 
                 for (;;) {
-                    if (!read_line(f, &linebuf, &linecap)) {
+                    if (!read_line(f, &linebuf, &linecap,
+                                   &read_status)) {
                         free(k);
+                        if (read_status == 0) {
+                            error_message = "unclosed multiline value";
+                            line_number = raw_start;
+                        } else {
+                            error_message = read_status == -2
+                                ? "failed to read file" : "out of memory";
+                        }
                         goto fail;
                     }
+                    line_number++;
 
                     if ((c = strchr(linebuf, '`'))) {
                         *c = 0;
@@ -338,8 +368,10 @@ table *oml_get(const char *filename)
                 l[len - 1] = 0;
                 l = trim(l);
 
-                if (!*l)
+                if (!*l) {
+                    error_message = "missing section name";
                     goto fail;
+                }
 
                 size_t parent = cur;
                 size_t j;
@@ -363,22 +395,25 @@ table *oml_get(const char *filename)
                     t->sections[j] = (section){0};
                     t->sections[j].parent = parent;
 
+                    t->size++;
                     if (!(t->sections[j].name = xstrdup(l)))
                         goto fail;
-
-                    t->size++;
                 }
 
                 cur = j;
                 skip_entry = 1;
             } else if (!strcmp(l, "}")) {
-                if (cur == 0)
+                if (cur == 0) {
+                    error_message = "unexpected closing brace";
                     goto fail;
+                }
                 cur = t->sections[cur].parent;
                 skip_entry = 1;
             } else {
-                if (!(e = strchr(l, '=')) || e == l)
+                if (!(e = strchr(l, '=')) || e == l) {
+                    error_message = "invalid syntax";
                     goto fail;
+                }
 
                 *e = 0;
 
@@ -481,6 +516,11 @@ table *oml_get(const char *filename)
         freeline = NULL;
     }
 
+    if (cur != 0) {
+        error_message = "unclosed section";
+        goto fail;
+    }
+
     free(linebuf);
     free(rawbuf);
     free(pending);
@@ -489,6 +529,7 @@ table *oml_get(const char *filename)
     return t;
 
 fail:
+    oml_error(line_number, error_message);
     free(linebuf);
     free(rawbuf);
     free(pending);
@@ -499,7 +540,7 @@ fail:
     return NULL;
 }
 
-const section *oml_section(const table *t, const char *name)
+const section *oml_section(table *t, char *name)
 {
     if (!t || !t->sections || !t->size)
         return NULL;
@@ -517,8 +558,8 @@ const section *oml_section(const table *t, const char *name)
     return NULL;
 }
 
-const section *oml_nested(const table *t, const section *parent,
-                          const char *name)
+const section *oml_nested(table *t, section *parent,
+                          char *name)
 {
     if (!t || !t->sections || !t->size || !parent || !name)
         return NULL;
@@ -544,7 +585,7 @@ const section *oml_nested(const table *t, const section *parent,
     return NULL;
 }
 
-const entry *oml_value(const section *s, const char *key)
+const entry *oml_value(section *s, char *key)
 {
     if (!s || !key || !s->entries)
         return NULL;
