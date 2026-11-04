@@ -25,11 +25,11 @@ typedef struct {
 
 table *oml_get(const char *filename);
 
-const section *oml_section(table *t, char *name);
+const section *oml_section(table *t, const char *name);
 
-const section *oml_nested(table *t, section *parent,
-                          char *name);
-const entry *oml_value(section *s, char *key);
+const section *oml_nested(table *t, const section *parent,
+                          const char *name);
+const entry *oml_value(const section *s, const char *key);
 
 void oml_free(table *t);
 

@@ -3,6 +3,9 @@
 #include "liboml.h"
 
 #include <string>
+#include <cerrno>
+#include <climits>
+#include <cmath>
 #include <vector>
 #include <cstring>
 #include <cstdlib>
@@ -32,9 +35,13 @@ namespace loml
             return nullptr;
 
         char *end = nullptr;
+        errno = 0;
+
         long result = std::strtol(value, &end, 10);
 
-        if (value == end || *end != '\0')
+        if (value == end || *end != '\0' ||
+            errno == ERANGE ||
+            result < INT_MIN || result > INT_MAX)
             return nullptr;
 
         return std::make_unique<int>(static_cast<int>(result));
@@ -47,9 +54,12 @@ namespace loml
             return nullptr;
 
         char *end = nullptr;
+        errno = 0;
+
         float result = std::strtof(value, &end);
 
-        if (value == end || *end != '\0')
+        if (value == end || *end != '\0' ||
+            errno == ERANGE || !std::isfinite(result))
             return nullptr;
 
         return std::make_unique<float>(result);
@@ -62,9 +72,12 @@ namespace loml
             return nullptr;
 
         char *end = nullptr;
+        errno = 0;
+
         double result = std::strtod(value, &end);
 
-        if (value == end || *end != '\0')
+        if (value == end || *end != '\0' ||
+            errno == ERANGE || !std::isfinite(result))
             return nullptr;
 
         return std::make_unique<double>(result);
@@ -90,21 +103,21 @@ namespace loml
     private:
         table *table_;
 
-        ::section *resolve(
-            std::initializer_list<char *> path) const
+        const ::section *resolve(
+            std::initializer_list<const char *> path) const
         {
             if (!table_)
                 return nullptr;
 
             if (path.size() == 0)
-                return const_cast<::section *>(oml_section(table_, nullptr));
+                return oml_section(table_, nullptr);
 
             auto it = path.begin();
-            ::section *sec = const_cast<::section *>(oml_section(table_, *it));
+            const ::section *sec = oml_section(table_, *it);
             ++it;
 
             for (; it != path.end() && sec; ++it)
-                sec = const_cast<::section *>(oml_nested(table_, sec, *it));
+                sec = oml_nested(table_, sec, *it);
 
             return sec;
         }
@@ -140,7 +153,7 @@ namespace loml
             return *this;
         }
 
-        const ::section *section(char *section_name = nullptr) const
+        const ::section *section(const char *section_name = nullptr) const
         {
             if (!table_)
                 return nullptr;
@@ -148,7 +161,7 @@ namespace loml
             return oml_section(table_, section_name);
         }
 
-        const ::section *nested(::section *parent, char *name) const
+        const ::section *nested(const ::section *parent, const char *name) const
         {
             if (!table_ || !parent || !name)
                 return nullptr;
@@ -158,21 +171,21 @@ namespace loml
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            char *section_name,
-            char *key
+            const char *section_name,
+            const char *key
         ) const
         {
             if (!table_)
                 return nullptr;
 
-            ::section *sec = const_cast<::section *>(oml_section(table_, section_name));
+            const ::section *sec = oml_section(table_, section_name);
             return get<T>(sec, key);
         }
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            ::section *sec,
-            char *key
+            const ::section *sec,
+            const char *key
         ) const
         {
             if (!table_ || !sec || !key)
@@ -214,11 +227,11 @@ namespace loml
 
         template<typename T = std::string>
         std::unique_ptr<T> get(
-            std::initializer_list<char *> path,
-            char *key
+            std::initializer_list<const char *> path,
+            const char *key
         ) const
         {
-            ::section *sec = resolve(path);
+            const ::section *sec = resolve(path);
             return get<T>(sec, key);
         }
     };

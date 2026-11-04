@@ -540,7 +540,7 @@ fail:
     return NULL;
 }
 
-const section *oml_section(table *t, char *name)
+const section *oml_section(table *t, const char *name)
 {
     if (!t || !t->sections || !t->size)
         return NULL;
@@ -558,8 +558,8 @@ const section *oml_section(table *t, char *name)
     return NULL;
 }
 
-const section *oml_nested(table *t, section *parent,
-                          char *name)
+const section *oml_nested(table *t, const section *parent,
+                          const char *name)
 {
     if (!t || !t->sections || !t->size || !parent || !name)
         return NULL;
@@ -585,7 +585,7 @@ const section *oml_nested(table *t, section *parent,
     return NULL;
 }
 
-const entry *oml_value(section *s, char *key)
+const entry *oml_value(const section *s, const char *key)
 {
     if (!s || !key || !s->entries)
         return NULL;
