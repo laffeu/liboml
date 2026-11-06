@@ -1,4 +1,4 @@
-<img src="assets/banner.png" alt="liboml banner" width="460">
+<center><img src="assets/banner.png" alt="liboml banner" width="460">
 
 ## Build & Install
 ```bash
