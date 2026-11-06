@@ -7,19 +7,7 @@ cd liboml
 make && make install
 ```
 
-## API Reference
-
-| Function | Description |
-|---|---|
-| `oml_get(filename)` | Load and parse an OML configuration file |
-| `oml_section(table, name)` | Retrieve a top-level or global section |
-| `oml_nested(table, parent, name)` | Retrieve a nested section from its parent |
-| `oml_value(section, key)` | Retrieve an entry by its key |
-| `oml_free(table)` | Free all allocated configuration resources |
-
 ## Code example
-
-### C
 
 ```c
 #include "liboml.h"
@@ -57,39 +45,6 @@ int main(void)
         printf("Sampling rate: %s\n", rate->value);
 
     oml_free(cfg);
-    return 0;
-}
-```
-
-### C++
-
-```c++
-#include "loml.hpp"
-#include <iostream>
-#include <string>
-#include <vector>
-
-int main()
-{
-    loml::Table cfg("sample.oml");
-
-    if (auto title = cfg.get("__undefined", "name"))
-        std::cout << *title << std::endl;
-
-    if (auto name = cfg.get("falcon_9", "name"))
-        std::cout << "Rocket: " << *name << std::endl;
-
-    if (auto engines = cfg.get<std::vector<std::string>>(
-            "falcon_9", "engines")) {
-        for (const auto &engine : *engines)
-            std::cout << "Engine: " << engine << std::endl;
-    }
-    
-    if (auto rate = cfg.get(
-            {"mission_control", "telemetry_config"},
-            "sampling_rate"))
-        std::cout << "Sampling rate: " << *rate << std::endl;
-
     return 0;
 }
 ```
