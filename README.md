@@ -1,5 +1,12 @@
 <p align="center"><img src="assets/banner.png" alt="liboml banner" width="460"></p>
 
+## Library features
+
+- Nested sections, arrays, and multiline strings.
+- Typed getters for integers, floating-point numbers, and booleans.
+- `append:` adds settings from other files and rejects duplicates.
+- `override:` replaces existing values, including values in nested sections.
+
 ## Build & Install
 ```bash
 git clone https://github.com/laffeu/liboml.git
