@@ -32,8 +32,17 @@ int main()
 
     /* Print the title and description if both are present. */
     if (title && title->value && description && description->value) {
-        printf("%s\n%s\n",
-               title->value, description->value);
+        printf("%s\n%s\n", title->value, description->value);
+    }
+
+    /* Print the Falcon 9 missions. */
+    const entry *missions = oml_value(falcon_9, "missions");
+
+    if (missions && missions->array) {
+        puts("Missions:");
+        for (size_t i = 0; missions->array[i] != NULL; i++) {
+            printf("- %s\n", missions->array[i]);
+        }
     }
 
     const entry *format = oml_value(telemetry, "format");
