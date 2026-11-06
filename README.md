@@ -4,46 +4,53 @@
 ```bash
 git clone https://github.com/laffeu/liboml.git
 cd liboml
+make liburing
 make && make install
 ```
 
 ## Code example
 
 ```c
-#include "liboml.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include "liboml.h"
 
-int main(void)
+int main()
 {
+    /* Load sample.oml with changes from changes.oml. */
     table *cfg = oml_get("sample.oml");
-    if (!cfg)
-        return 1;
 
-    const section *global = oml_section(cfg, "__undefined");
-    const entry *title = oml_value(global, "name");
+    /* Get the section with top-level keys. */
+    const section *root = oml_section(cfg, NULL);
 
-    if (title && title->value)
-        printf("%s\n", title->value);
+    /* Find telemetry_config inside falcon_9. */
+    const section *falcon_9 = oml_section(cfg, "falcon_9");
+    const section *telemetry = oml_nested(cfg, falcon_9, "telemetry_config");
 
-    const section *falcon = oml_section(cfg, "falcon_9");
-    const entry *name = oml_value(falcon, "name");
-    const entry *engines = oml_value(falcon, "engines");
+    const entry *title = oml_value(root, "name");
+    const entry *description = oml_value(root, "description");
 
-    if (name && name->value)
-        printf("Rocket: %s\n", name->value);
-
-    if (engines && engines->array) {
-        for (size_t i = 0; engines->array[i]; i++)
-            printf("Engine: %s\n", engines->array[i]);
+    /* Print the title and description if both are present. */
+    if (title && title->value && description && description->value) {
+        printf("%s\n%s\n",
+               title->value, description->value);
     }
 
-    const section *mission = oml_section(cfg, "mission_control");
-    const section *telemetry = oml_nested(cfg, mission, "telemetry_config");
-    const entry *rate = oml_value(telemetry, "sampling_rate");
+    const entry *format = oml_value(telemetry, "format");
+    const int *rate = oml_int(telemetry, "sampling_rate");
+    const bool *enabled = oml_bool(telemetry, "enabled");
 
-    if (rate && rate->value)
-        printf("Sampling rate: %s\n", rate->value);
+    /* Print telemetry if all three values are present. */
+    if (format && format->value && rate && enabled) {
+        printf("Falcon 9\nFormat: %s\nSampling rate: %d\nEnabled: %s\n",
+               format->value, *rate, *enabled ? "true" : "false");
+    }
 
+    /* Free rate and enabled even if nothing was printed. */
+    free((void *)rate);
+    free((void *)enabled);
+
+    /* Free the config, its sections, and its entries. */
     oml_free(cfg);
     return 0;
 }
