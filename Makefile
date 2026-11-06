@@ -13,7 +13,7 @@ liburing:
 
 
 liboml.so: src/liboml.c src/liboml.h
-	$(CC) $(CFLAGS) -shared src/liboml.c -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) -DOML_QUIET -shared src/liboml.c -o $@ $(LDLIBS)
 
 install: liboml.so
 	install -d $(PREFIX)/include

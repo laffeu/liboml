@@ -26,6 +26,13 @@ static char *trim(char *s) {
         *--e = 0;
     return s;
 }
+static void strip_quotes(char *v) {
+    size_t len = strlen(v);
+    if (len >= 2 && v[0] == '"' && v[len - 1] == '"') {
+        memmove(v, v + 1, len - 2);
+        v[len - 2] = '\0';
+    }
+}
 static char *xstrdup(const char *s) {
     if (!s)
         return NULL;
@@ -452,6 +459,8 @@ static int parse_file(table *t, const char *filename,
                         free(staged.array[--ai]);
                 }
                 staged.array[ai] = NULL;
+                for (size_t i = 0; i < ai; i++)
+                    strip_quotes(staged.array[i]);
                 free(staged.value);
                 staged.value = NULL;
             }
@@ -575,14 +584,8 @@ const section *oml_nested(table *t, const section *parent,
 }
 const entry *oml_value(const section *s, const char *key) {
     const entry *e = find_entry(s, key);
-    if (e && e->value) {
-        char *v = e->value;
-        size_t len = strlen(v);
-        if (len >= 2 && v[0] == '"' && v[len - 1] == '"') {
-            memmove(v, v + 1, len - 2);
-            v[len - 2] = '\0';
-        }
-    }
+    if (e && e->value)
+        strip_quotes(e->value);
     return e;
 }
 const int *oml_int(const section *s, const char *key) {
