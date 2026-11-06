@@ -2,10 +2,11 @@
 
 ## Library features
 
-- Nested sections, arrays, and multiline strings.
-- Typed getters for integers, floating-point numbers, and booleans.
-- `append:` adds settings from other files and rejects duplicates.
-- `override:` replaces existing values, including values in nested sections.
+- Nested sections, arrays, and multiline strings
+- Typed getters for integers, floating-point numbers, and booleans
+- `append:` adds settings from other files and rejects duplicates
+- `override:` replaces existing values, including values in nested sections
+- Concurrent config reads on Linux via `liburing`, with a standard I/O fallback
 
 ## Build & Install
 ```bash
