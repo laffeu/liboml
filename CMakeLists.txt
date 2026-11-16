@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.20)
+project(liboml LANGUAGES C)
+include(GNUInstallDirs)
+
+add_library(oml SHARED src/liboml.c)
+
+target_include_directories(oml PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_compile_definitions(oml PRIVATE OML_QUIET)
+
+if(WIN32)
+    set_target_properties(oml PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    target_link_libraries(oml PRIVATE kernel32)
+    if(MSVC)
+        target_compile_options(oml PRIVATE /W4)
+        target_compile_definitions(oml PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_path(LIBURING_INCLUDE_DIR liburing.h REQUIRED)
+    find_library(LIBURING_LIBRARY uring REQUIRED)
+    target_include_directories(oml PRIVATE "${LIBURING_INCLUDE_DIR}")
+    target_link_libraries(oml PRIVATE "${LIBURING_LIBRARY}")
+    target_compile_options(oml PRIVATE -Wall -Wextra)
+else()
+    message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+install(TARGETS oml)
+install(FILES src/liboml.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
