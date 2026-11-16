@@ -1,0 +1,9 @@
+name = "List of Changes"
+description = "Switches Falcon 9 telemetry to JSON and doubles the sampling rate."
+
+falcon_9 {
+    telemetry_config {
+        format = "json"
+        sampling_rate = 200
+    }
+}

@@ -1,0 +1,40 @@
+override: changes.oml
+# Use append: if you want to add new params.
+
+name = "Mission_Control"
+description = `
+Mission Control is a launch and telemetry management system.
+It monitors rockets, tracks missions, and manages telemetry data.
+`
+version = 2
+environment = "simulation"
+log_level = "info"
+
+rockets = [ "Falcon_1", "Falcon_9" ]
+
+falcon_1 {
+    name = "Falcon_1"
+    manufacturer = "SpaceX"
+    stages = 2
+    reusable = false
+    status = "retired"
+    engines = [ "Merlin_1A" ]
+}
+
+falcon_9 {
+    name = "Falcon_9"
+    manufacturer = "SpaceX"
+    stages = 2
+    reusable = true
+    status = "operational"
+    engines = [ "Merlin_1D", "Merlin_Vacuum" ]
+    missions = [ "Starlink", "CRS", "Crew_Dragon" ]
+
+    telemetry_config {
+        format = "binary"
+        sampling_rate = 100
+        channels = [ "Temperature", "Pressure", "Vibration" ]
+        enabled = true
+    }
+
+}
