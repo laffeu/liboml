@@ -15,10 +15,38 @@ if(WIN32)
         target_compile_definitions(oml PRIVATE _CRT_SECURE_NO_WARNINGS)
     endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    find_path(LIBURING_INCLUDE_DIR liburing.h REQUIRED)
-    find_library(LIBURING_LIBRARY uring REQUIRED)
-    target_include_directories(oml PRIVATE "${LIBURING_INCLUDE_DIR}")
-    target_link_libraries(oml PRIVATE "${LIBURING_LIBRARY}")
+    find_path(URING_INCLUDE liburing.h)
+    find_library(URING_SHARED NAMES liburing.so)
+    if(NOT URING_INCLUDE OR NOT URING_SHARED)
+        include(FetchContent)
+        find_program(GNU_MAKE NAMES gmake make REQUIRED)
+
+        FetchContent_Declare(liburing
+                GIT_REPOSITORY https://github.com/axboe/liburing.git
+                GIT_TAG liburing-2.15
+                GIT_SHALLOW TRUE
+        )
+        FetchContent_MakeAvailable(liburing)
+        execute_process(
+                COMMAND ./configure
+                "--cc=${CMAKE_C_COMPILER}"
+                "--prefix=${CMAKE_INSTALL_PREFIX}"
+                WORKING_DIRECTORY "${liburing_SOURCE_DIR}"
+                COMMAND_ERROR_IS_FATAL ANY
+        )
+        foreach(target IN ITEMS all liburing.pc install)
+            execute_process(
+                    COMMAND "${GNU_MAKE}" "${target}"
+                    WORKING_DIRECTORY "${liburing_SOURCE_DIR}"
+                    COMMAND_ERROR_IS_FATAL ANY
+            )
+        endforeach()
+        find_path(URING_INCLUDE liburing.h REQUIRED)
+        find_library(URING_SHARED NAMES liburing.so REQUIRED)
+    endif()
+
+    target_include_directories(oml PRIVATE "${URING_INCLUDE}")
+    target_link_libraries(oml PRIVATE "${URING_SHARED}")
     target_compile_options(oml PRIVATE -Wall -Wextra)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_compile_options(oml PRIVATE -Wall -Wextra -fblocks)
