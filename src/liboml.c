@@ -4,7 +4,10 @@
 #include <windows.h>
 #include <ioringapi.h>
 #elif defined(__linux__)
-#include <liburing.h>
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #elif defined(__APPLE__)
@@ -76,7 +79,11 @@ static void *grow(void *arr, size_t *cap,
     return p;
 }
 #define OML_BATCH 8
+#ifdef _WIN32
+#define OML_READ_CHUNK (64 * 1024 - 1)
+#else
 #define OML_READ_CHUNK (64 * 1024)
+#endif
 
 struct input_file {
     FILE *stream;
@@ -91,8 +98,7 @@ struct input_file {
 #endif
 };
 
-#if defined(__linux__) || defined(_WIN32) || defined(__APPLE__)
-/* Keep one spare byte for the final line terminator. */
+#if defined(_WIN32) || defined(__APPLE__)
 static char *reserve_input(struct input_file *file, size_t extra) {
     if (extra >= SIZE_MAX - file->size) return NULL;
     char *data = grow(file->data, &file->capacity, 1, file->size + extra + 1);
@@ -102,92 +108,7 @@ static char *reserve_input(struct input_file *file, size_t extra) {
 }
 #endif
 
-#if defined(__linux__)
-struct read_context {
-    struct io_uring ring;
-    bool ready;
-};
-
-static void init_reader(struct read_context *ctx) {
-    ctx->ready = io_uring_queue_init(OML_BATCH, &ctx->ring, 0) == 0;
-}
-
-static void close_reader(struct read_context *ctx) {
-    if (ctx->ready)
-        io_uring_queue_exit(&ctx->ring);
-    ctx->ready = false;
-}
-
-static void prefetch(struct read_context *ctx,
-                     const char **paths, struct input_file *files, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        files[i].stream = fopen(paths[i], "r");
-        struct stat st;
-        files[i].done = !files[i].stream ||
-            fstat(fileno(files[i].stream), &st) != 0 || !S_ISREG(st.st_mode);
-    }
-    if (!ctx->ready) return;
-
-    for (;;) {
-        size_t pending = 0;
-        for (size_t i = 0; i < count; i++) {
-            struct input_file *f = &files[i];
-            if (f->done) continue;
-            char *data = reserve_input(f, OML_READ_CHUNK);
-            if (!data) goto fallback;
-            struct io_uring_sqe *sqe = io_uring_get_sqe(&ctx->ring);
-            if (!sqe) goto fallback;
-            io_uring_prep_read(sqe, fileno(f->stream), data + f->size,
-                               OML_READ_CHUNK, f->size);
-            io_uring_sqe_set_data(sqe, f);
-            pending++;
-        }
-        if (!pending) break;
-        size_t submitted = 0;
-        while (submitted < pending) {
-            int n = io_uring_submit(&ctx->ring);
-            if (n == -EINTR) continue;
-            if (n <= 0) goto fallback;
-            submitted += (size_t)n;
-        }
-        while (pending--) {
-            struct io_uring_cqe *cqe;
-            int rc;
-            do {
-                rc = io_uring_wait_cqe(&ctx->ring, &cqe);
-            } while (rc == -EINTR);
-            if (rc < 0) goto fallback;
-            struct input_file *f = io_uring_cqe_get_data(cqe);
-            int n = cqe->res;
-            io_uring_cqe_seen(&ctx->ring, cqe);
-            if (n < 0) goto fallback;
-            if (n == 0)
-                f->done = true;
-            else
-                f->size += (size_t)n;
-        }
-    }
-    for (size_t i = 0; i < count; i++) {
-        struct input_file *f = &files[i];
-        if (!f->data) continue;
-        f->data[f->size] = 0;
-        FILE *memory = fmemopen(f->data, f->size, "r");
-        if (memory) {
-            fclose(f->stream);
-            f->stream = memory;
-        }
-    }
-    return;
-
-fallback:
-    close_reader(ctx);
-    for (size_t i = 0; i < count; i++) {
-        free(files[i].data);
-        files[i].data = NULL;
-    }
-}
-
-#elif defined(_WIN32)
+#if defined(_WIN32)
 struct read_context {
     HIORING ring;
     HANDLE event;
@@ -271,7 +192,6 @@ static void prefetch(struct read_context *ctx, const char **paths,
     goto close_handles;
 
 fallback:
-    /* Submitted reads have completed. Closing discards unsubmitted entries. */
     close_reader(ctx);
     for (size_t i = 0; i < count; i++) {
         free(files[i].data);
@@ -378,9 +298,23 @@ static void close_reader(struct read_context *ctx) { (void)ctx; }
 static void prefetch(struct read_context *ctx, const char **paths,
                      struct input_file *files, size_t count) {
     (void)ctx;
+#ifdef __linux__
+    for (size_t i = 0; i < count; i++) {
+        FILE *stream = fopen(paths[i], "r");
+        files[i].stream = stream;
+        if (!stream) continue;
+        int fd = fileno(stream);
+        struct stat st;
+        if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
+            /* Best-effort read-ahead into the kernel page cache. */
+            (void)posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
+        }
+    }
+#else
     (void)paths;
     (void)files;
     (void)count;
+#endif
 }
 #endif
 
@@ -472,7 +406,18 @@ static bool parse_array(entry *e) {
     if (!e->array) return false;
     size_t i = 0;
     while (items) {
-        char *item = next_item(&items);
+        char *item = items;
+        bool quoted = false;
+        while (*items && (quoted || *items != ',')) {
+            if (*items == '"')
+                quoted = !quoted;
+            items++;
+        }
+        if (*items)
+            *items++ = 0;
+        else
+            items = NULL;
+        item = trim(item);
         if (!*item && !items) break;
         e->array[i] = xstrdup(item);
         if (!e->array[i]) return false;
@@ -487,7 +432,9 @@ static bool add_section(table *t, size_t parent, const char *name) {
     if (!sections) return false;
     t->sections = sections;
     section *next = &sections[t->size++];
-    *next = (section){ .name = xstrdup(name), .parent = parent };
+    *next = (section){ .parent = parent };
+    if (!name) return true;
+    next->name = xstrdup(name);
     return next->name != NULL;
 }
 static size_t find_section(const table *t, size_t parent, const char *name) {
@@ -681,6 +628,8 @@ static int parse_file(table *t, const char *filename,
             s->entries = p;
         }
         if (!raw && !parse_array(&staged)) goto fail;
+        if (!raw && staged.value)
+            strip_quotes(staged.value);
         if (existing)
             free_entry(existing);
         else
@@ -747,7 +696,7 @@ table *oml_get(const char *filename) {
     if (!filename) return NULL;
     table *t = calloc(1, sizeof *t);
     if (!t) return NULL;
-    if (add_section(t, 0, "__undefined")) {
+    if (add_section(t, 0, undefined)) {
         struct read_context ctx = {0};
         struct input_file input = {0};
         init_reader(&ctx);
@@ -762,7 +711,7 @@ table *oml_get(const char *filename) {
 }
 const section *oml_section(table *t, const char *name) {
     if (!t || !t->sections || !t->size) return NULL;
-    if (!name || !strcmp(name, "__undefined")) return &t->sections[0];
+    if (!name) return &t->sections[0];
     size_t i = find_section(t, 0, name);
     return i < t->size ? &t->sections[i] : NULL;
 }
@@ -776,39 +725,42 @@ const section *oml_nested(table *t, const section *parent,
     size_t i = find_section(t, pidx, name);
     return i < t->size ? &t->sections[i] : NULL;
 }
-const entry *oml_value(const section *s, const char *key) {
-    const entry *e = find_entry(s, key);
-    if (e && e->value)
-        strip_quotes(e->value);
-    return e;
+const entry *oml_value(const section *s, const char *key)
+{
+    return find_entry(s, key);
 }
-const int *oml_int(const section *s, const char *key) {
+bool oml_int(const section *s, const char *key, int *out)
+{
     const entry *e = oml_value(s, key);
-    if (!e || !e->value) return NULL;
+    if (!out || !e || !e->value) return false;
     char *end;
     errno = 0;
     long value = strtol(e->value, &end, 10);
     if (end == e->value || *end != '\0' || errno == ERANGE ||
         value < INT_MIN || value > INT_MAX)
-        return NULL;
-    int integer = (int)value;
-    return copy_bytes(&integer, sizeof integer);
+        return false;
+    *out = (int)value;
+    return true;
 }
-const double *oml_double(const section *s, const char *key) {
+bool oml_double(const section *s, const char *key, double *out)
+{
     const entry *e = oml_value(s, key);
-    if (!e || !e->value) return NULL;
+    if (!out || !e || !e->value) return false;
     char *end;
     errno = 0;
     double value = strtod(e->value, &end);
     if (end == e->value || *end != '\0' || errno == ERANGE ||
         !isfinite(value))
-        return NULL;
-    return copy_bytes(&value, sizeof value);
+        return false;
+    *out = value;
+    return true;
 }
-const bool *oml_bool(const section *s, const char *key) {
+bool oml_bool(const section *s, const char *key, bool *out)
+{
     const entry *e = oml_value(s, key);
-    if (!e || !e->value) return NULL;
+    if (!out || !e || !e->value) return false;
     bool value = !strcmp(e->value, "true");
-    if (!value && strcmp(e->value, "false")) return NULL;
-    return copy_bytes(&value, sizeof value);
+    if (!value && strcmp(e->value, "false")) return false;
+    *out = value;
+    return true;
 }

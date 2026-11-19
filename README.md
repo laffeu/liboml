@@ -28,7 +28,7 @@ int main()
     table *cfg = oml_get("sample.oml");
 
     /* Get the section with top-level keys. */
-    const section *root = oml_section(cfg, NULL);
+    const section *root = oml_section(cfg, undefined);
 
     /* Find telemetry_config inside falcon_9. */
     const section *falcon_9 = oml_section(cfg, "falcon_9");
@@ -62,11 +62,6 @@ int main()
                format->value, *rate, *enabled ? "true" : "false");
     }
 
-    /* Free rate and enabled even if nothing was printed. */
-    free((void *)rate);
-    free((void *)enabled);
-
-    /* Free the config, its sections, and its entries. */
     oml_free(cfg);
     return 0;
 }
