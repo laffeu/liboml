@@ -19,13 +19,16 @@ cmake --install .
 
 ```c
 #include <stdio.h>
-#include <stdlib.h>
 #include "liboml.h"
 
-int main()
+int main(void)
 {
     /* Load sample.oml with changes from changes.oml. */
     table *cfg = oml_get("sample.oml");
+    if (!cfg) {
+        fprintf(stderr, "Failed to load sample.oml\n");
+        return 1;
+    }
 
     /* Get the section with top-level keys. */
     const section *root = oml_section(cfg, undefined);
@@ -44,7 +47,6 @@ int main()
 
     /* Print the Falcon 9 missions. */
     const entry *missions = oml_value(falcon_9, "missions");
-
     if (missions && missions->array) {
         puts("Missions:");
         for (size_t i = 0; missions->array[i] != NULL; i++) {
@@ -52,14 +54,16 @@ int main()
         }
     }
 
+    /* Print telemetry if all three values are present and valid. */
     const entry *format = oml_value(telemetry, "format");
-    const int *rate = oml_int(telemetry, "sampling_rate");
-    const bool *enabled = oml_bool(telemetry, "enabled");
+    int rate;
+    bool enabled;
 
-    /* Print telemetry if all three values are present. */
-    if (format && format->value && rate && enabled) {
+    if (format && format->value &&
+        oml_int(telemetry, "sampling_rate", &rate) &&
+        oml_bool(telemetry, "enabled", &enabled)) {
         printf("Falcon 9\nFormat: %s\nSampling rate: %d\nEnabled: %s\n",
-               format->value, *rate, *enabled ? "true" : "false");
+               format->value, rate, enabled ? "true" : "false");
     }
 
     oml_free(cfg);
