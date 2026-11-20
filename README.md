@@ -1,16 +1,8 @@
 # liboml
-A fast, expressive, composable OML parser library
+A fast, powerful, cross-platform library for parsing OML configuration files. It reads included files concurrently and falls back to buffered I/O when needed. Use append: to combine settings across files while rejecting duplicate keys, or override: to replace individual values in nested sections. Arrays and multiline strings keep complex configurations readable, while typed getters provide direct access to integers, floating-point numbers, and booleans
 
 ## Build & Install
 ```bash
 cmake -S .
 cmake --build . --target install
 ```
-
-## Library features
-
-- Nested sections, arrays, and multiline strings
-- Typed getters for integers, floating-point numbers, and booleans
-- `append:` adds settings from other files and rejects duplicates
-- `override:` replaces existing values, including values in nested sections
-- Concurrent config reads with a buffered file I/O fallback
