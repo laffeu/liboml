@@ -3,13 +3,6 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <ioringapi.h>
-#elif defined(__linux__)
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #elif defined(__APPLE__)
 #include <dispatch/dispatch.h>
 #include <fcntl.h>
@@ -298,23 +291,9 @@ static void close_reader(struct read_context *ctx) { (void)ctx; }
 static void prefetch(struct read_context *ctx, const char **paths,
                      struct input_file *files, size_t count) {
     (void)ctx;
-#ifdef __linux__
-    for (size_t i = 0; i < count; i++) {
-        FILE *stream = fopen(paths[i], "r");
-        files[i].stream = stream;
-        if (!stream) continue;
-        int fd = fileno(stream);
-        struct stat st;
-        if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
-            /* Best-effort read-ahead into the kernel page cache. */
-            (void)posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
-        }
-    }
-#else
     (void)paths;
     (void)files;
     (void)count;
-#endif
 }
 #endif
 

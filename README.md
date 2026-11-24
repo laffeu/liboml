@@ -3,6 +3,6 @@ A fast, powerful, cross-platform library for parsing OML configuration files. It
 
 ## Build & Install
 ```bash
-cmake -S .
+cmake -S . -DBUILD_SHARED_LIBS=OFF
 cmake --build . --target install
 ```

@@ -3,7 +3,8 @@ project(liboml LANGUAGES C)
 include(GNUInstallDirs)
 
 option(BUILD_SHARED_LIBS "Build liboml as a shared library" ON)
-add_library(oml src/liboml.c)
+add_library(oml src/liboml.c
+)
 
 target_compile_features(oml PRIVATE c_std_17)
 target_include_directories(oml PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
